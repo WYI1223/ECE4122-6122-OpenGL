@@ -11,3 +11,8 @@ Thumbs.db
 OpenGL-tutorial_v*
 **.mtl
 .DS_Store
+**/.claude/
+**/build/
+**/build_*/
+build_hmk3_stage0/
+*.vcxproj.user

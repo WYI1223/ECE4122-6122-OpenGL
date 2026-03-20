@@ -19,6 +19,7 @@ endif()
 
 # Compile external dependencies 
 add_subdirectory (external)
+add_subdirectory (Hmk3)
 
 # On Visual 2005 and above, this module can set the debug working directory
 cmake_policy(SET CMP0026 OLD)
