@@ -133,9 +133,56 @@ private:
         std::vector<GLuint>  indices;
         std::vector<Texture> textures;
 
-        // TODO: fill vertices, indices, textures
+        vertices.reserve(mesh->mNumVertices);
+        for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
+            Vertex v {};
+            v.position = {
+                mesh->mVertices[i].x,
+                mesh->mVertices[i].y,
+                mesh->mVertices[i].z
+            };
 
-        (void)mesh; (void)scene; // remove when implemented
+            if (mesh->HasNormals() && mesh->mNormals) {
+                v.normal = {
+                    mesh->mNormals[i].x,
+                    mesh->mNormals[i].y,
+                    mesh->mNormals[i].z
+                };
+            } else {
+                v.normal = glm::vec3(0.0f);
+            }
+
+            if (mesh->mTextureCoords[0]) {
+                v.texCoords = {
+                    mesh->mTextureCoords[0][i].x,
+                    mesh->mTextureCoords[0][i].y
+                };
+            } else {
+                v.texCoords = glm::vec2(0.0f);
+            }
+
+            vertices.push_back(v);
+        }
+
+        for (unsigned i = 0; i < mesh->mNumFaces; ++i) {
+            const aiFace& face = mesh->mFaces[i];
+            for (unsigned j = 0; j < face.mNumIndices; ++j)
+                indices.push_back(face.mIndices[j]);
+        }
+
+        if (mesh->mMaterialIndex >= 0) {
+            aiMaterial* mat = scene->mMaterials[mesh->mMaterialIndex];
+
+            auto diffuseMaps = loadMaterialTextures(mat, aiTextureType_DIFFUSE, "texture_diffuse");
+            textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+
+            auto specularMaps = loadMaterialTextures(mat, aiTextureType_SPECULAR, "texture_specular");
+            textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
+
+            auto emissiveMaps = loadMaterialTextures(mat, aiTextureType_EMISSIVE, "texture_emissive");
+            textures.insert(textures.end(), emissiveMaps.begin(), emissiveMaps.end());
+        }
+
         return Mesh(std::move(vertices), std::move(indices), std::move(textures));
     }
 
@@ -158,8 +205,54 @@ private:
     {
         std::vector<Texture> out;
 
-        // TODO
-        (void)mat; (void)type; (void)typeName;
+        const unsigned texCount = mat->GetTextureCount(type);
+        out.reserve(texCount);
+
+        for (unsigned i = 0; i < texCount; ++i) {
+            aiString aiPath;
+            if (mat->GetTexture(type, i, &aiPath) != AI_SUCCESS)
+                continue;
+
+            const fs::path materialPath = fs::path(aiPath.C_Str()).lexically_normal();
+            fs::path resolvedPath = (fs::path(m_directory) / materialPath).lexically_normal();
+
+            // Some exported MTL files keep a useful relative subdirectory
+            // (for example "textures/black.jpg"), while others may contain
+            // stale directory prefixes. Prefer the full relative path first,
+            // then fall back to filename-only normalization.
+            if (!fs::exists(resolvedPath))
+                resolvedPath = (fs::path(m_directory) / materialPath.filename()).lexically_normal();
+
+            // Some Assimp importers collapse the relative directory and leave
+            // only the filename. Search under the model root as a last resort.
+            if (!fs::exists(resolvedPath) && fs::exists(m_directory)) {
+                for (const auto& entry : fs::recursive_directory_iterator(m_directory)) {
+                    if (!entry.is_regular_file())
+                        continue;
+                    if (entry.path().filename() == materialPath.filename()) {
+                        resolvedPath = entry.path().lexically_normal();
+                        break;
+                    }
+                }
+            }
+
+            const std::string fullPath = resolvedPath.string();
+
+            auto it = m_texCache.find(fullPath);
+            if (it != m_texCache.end()) {
+                out.push_back(it->second);
+                continue;
+            }
+
+            Texture tex;
+            tex.id = loadTextureFromFile(fullPath);
+            tex.type = typeName;
+            tex.path = fullPath;
+
+            m_texCache[fullPath] = tex;
+            out.push_back(tex);
+        }
+
         return out;
     }
 
