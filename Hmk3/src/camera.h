@@ -22,12 +22,13 @@ enum class CameraDir { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
 class Camera
 {
 public:
+    static constexpr float kDefaultPitch = -18.434948f;
     // ── Public state (read by main.cpp for projection + light upload) ─────────
     glm::vec3 position;
     glm::vec3 worldUp { 0.f, 1.f, 0.f };
 
     float yaw    { -90.f };   // degrees; -90 points toward -Z on startup
-    float pitch  {   0.f };   // degrees
+    float pitch  { kDefaultPitch };   // degrees
 
     float speed     { 5.f };   // world units per second
     float mouseSens { 0.08f };
@@ -121,7 +122,7 @@ public:
     {
         position = { 0.f, 5.f, 15.f };
         yaw = -90.f;
-        pitch = 0.f;
+        pitch = kDefaultPitch;
         fov = 45.f;
         updateVectors();
     }

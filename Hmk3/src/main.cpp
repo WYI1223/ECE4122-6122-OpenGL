@@ -31,7 +31,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <array>
+#include <cmath>
 #include <iostream>
+#include <random>
 #include <vector>
 
 #include "camera.h"
@@ -347,6 +350,25 @@ static void drawModel(Model &model, Shader &sh,
 // ─────────────────────────────────────────────────────────────────────────────
 // main
 // ─────────────────────────────────────────────────────────────────────────────
+static glm::mat4 makeSceneTransform(const glm::vec3 &position,
+                                    float yRotationDeg = 0.0f,
+                                    const glm::vec3 &sceneScale = glm::vec3(1.0f))
+{
+    glm::mat4 transform(1.0f);
+    transform = glm::translate(transform, position);
+    if (yRotationDeg != 0.0f)
+        transform = glm::rotate(transform, glm::radians(yRotationDeg), glm::vec3(0.0f, 1.0f, 0.0f));
+    transform = glm::scale(transform, sceneScale);
+    return transform;
+}
+
+static glm::mat4 makeAssetCorrection(const glm::vec3 &assetScale,
+                                     const glm::vec3 &localOffset = glm::vec3(0.0f))
+{
+    glm::mat4 correction = glm::scale(glm::mat4(1.0f), assetScale);
+    return glm::translate(correction, localOffset);
+}
+
 int main()
 {
     // ── GLFW init (provided) ──────────────────────────────────────────────────
@@ -418,6 +440,21 @@ int main()
     buildTerrain();
     g_groundTex = loadGroundTexture("./assets/models/pinetree/Texture/grass.jpg");
 
+    std::mt19937 treeYawRng(4122);
+    std::uniform_real_distribution<float> treeYawDist(0.0f, 45.0f);
+    const std::array<float, 4> treeYaws {
+        treeYawDist(treeYawRng),
+        treeYawDist(treeYawRng),
+        treeYawDist(treeYawRng),
+        treeYawDist(treeYawRng),
+    };
+
+    const glm::vec3 resetCameraPos(0.0f, 5.0f, 15.0f);
+    const glm::vec3 robotScenePos(-3.0f, 0.0f, -4.0f);
+    const float robotFacingYaw =
+        glm::degrees(std::atan2(resetCameraPos.x - robotScenePos.x,
+                                resetCameraPos.z - robotScenePos.z));
+
     // ── Render loop ───────────────────────────────────────────────────────────
     while (!glfwWindowShouldClose(window))
     {
@@ -483,88 +520,63 @@ int main()
         const glm::vec3 farmhouseScale(0.08f, 0.08f, 0.08f);
         const glm::vec3 benchScale(0.02f, 0.02f, 0.02f);
         const glm::vec3 robotScale(0.35f, 0.35f, 0.35f);
+        const glm::mat4 farmhouseAssetCorrection =
+            makeAssetCorrection(farmhouseScale, glm::vec3(0.0f, 48.8f, 0.0f));
+        const glm::mat4 benchAssetCorrection = makeAssetCorrection(benchScale);
+        const glm::mat4 robotAssetCorrection =
+            makeAssetCorrection(robotScale, glm::vec3(0.0f, -0.14f, 0.0f));
+        const glm::vec3 treeLocalOffset(0.0f, -0.08f, 0.0f);
+        const glm::mat4 treeAdjustA =
+            makeAssetCorrection(glm::vec3(0.42f, 0.95f, 0.42f), treeLocalOffset);
+        const glm::mat4 treeAdjustB =
+            makeAssetCorrection(glm::vec3(0.46f, 1.05f, 0.40f), treeLocalOffset);
+        const glm::mat4 treeAdjustC =
+            makeAssetCorrection(glm::vec3(0.38f, 0.88f, 0.44f), treeLocalOffset);
+        const glm::mat4 treeAdjustD =
+            makeAssetCorrection(glm::vec3(0.44f, 1.00f, 0.38f), treeLocalOffset);
 
         drawModel(mFarmhouse, objShader,
-                  glm::scale(
-                      glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 3.9f, -10.0f)),
-                      farmhouseScale),
+                  makeSceneTransform(glm::vec3(0.0f, 0.0f, -10.0f)) * farmhouseAssetCorrection,
                   view, proj);
 
         drawModel(mBarrel, objShader,
-                  glm::translate(glm::mat4(1.0f), glm::vec3(3.5f, 0.0f, -8.0f)),
+                  makeSceneTransform(glm::vec3(3.5f, 0.0f, -8.0f)),
                   view, proj);
 
         drawModel(mBarrel, objShader,
-                  glm::rotate(
-                      glm::translate(glm::mat4(1.0f), glm::vec3(4.5f, 0.0f, -8.0f)),
-                      glm::radians(15.0f),
-                      glm::vec3(0.0f, 1.0f, 0.0f)),
+                  makeSceneTransform(glm::vec3(4.5f, 0.0f, -8.0f), 15.0f),
                   view, proj);
 
         drawModel(mTree, objShader,
-                  glm::scale(
-                      glm::rotate(
-                          glm::translate(glm::mat4(1.0f), glm::vec3(-12.0f, 0.0f, -12.0f)),
-                          glm::radians(12.0f),
-                          glm::vec3(0.0f, 1.0f, 0.0f)),
-                      glm::vec3(0.42f, 0.95f, 0.42f)),
+                  makeSceneTransform(glm::vec3(-12.0f, 0.0f, -12.0f), treeYaws[0]) * treeAdjustA,
                   view, proj);
 
         drawModel(mTree, objShader,
-                  glm::scale(
-                      glm::rotate(
-                          glm::translate(glm::mat4(1.0f), glm::vec3(12.0f, 0.0f, -12.0f)),
-                          glm::radians(28.0f),
-                          glm::vec3(0.0f, 1.0f, 0.0f)),
-                      glm::vec3(0.46f, 1.05f, 0.40f)),
+                  makeSceneTransform(glm::vec3(12.0f, 0.0f, -12.0f), treeYaws[1]) * treeAdjustB,
                   view, proj);
 
         drawModel(mTree, objShader,
-                  glm::scale(
-                      glm::rotate(
-                          glm::translate(glm::mat4(1.0f), glm::vec3(-12.0f, 0.0f, 12.0f)),
-                          glm::radians(8.0f),
-                          glm::vec3(0.0f, 1.0f, 0.0f)),
-                      glm::vec3(0.38f, 0.88f, 0.44f)),
+                  makeSceneTransform(glm::vec3(-12.0f, 0.0f, 12.0f), treeYaws[2]) * treeAdjustC,
                   view, proj);
 
         drawModel(mTree, objShader,
-                  glm::scale(
-                      glm::rotate(
-                          glm::translate(glm::mat4(1.0f), glm::vec3(12.0f, 0.0f, 12.0f)),
-                          glm::radians(40.0f),
-                          glm::vec3(0.0f, 1.0f, 0.0f)),
-                      glm::vec3(0.44f, 1.00f, 0.38f)),
+                  makeSceneTransform(glm::vec3(12.0f, 0.0f, 12.0f), treeYaws[3]) * treeAdjustD,
                   view, proj);
 
         drawModel(mBench, objShader,
-                  glm::scale(
-                      glm::rotate(
-                          glm::translate(glm::mat4(1.0f), glm::vec3(-6.0f, 0.0f, 2.0f)),
-                          glm::radians(-30.0f),
-                          glm::vec3(0.0f, 1.0f, 0.0f)),
-                      benchScale),
+                  makeSceneTransform(glm::vec3(-6.0f, 0.0f, 2.0f), -30.0f) * benchAssetCorrection,
                   view, proj);
 
         drawModel(mLamp, objShader,
-                  glm::scale(
-                      glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 0.0f, 0.0f)),
-                      glm::vec3(0.5f, 0.5f, 0.5f)),
+                  makeSceneTransform(glm::vec3(5.0f, 0.0f, 0.0f), 0.0f, glm::vec3(0.5f)),
                   view, proj);
 
         drawModel(mLamp, objShader,
-                  glm::scale(
-                      glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 0.0f, 5.0f)),
-                      glm::vec3(0.5f, 0.5f, 0.5f)),
+                  makeSceneTransform(glm::vec3(-5.0f, 0.0f, 5.0f), 0.0f, glm::vec3(0.5f)),
                   view, proj);
 
         drawModel(mRobot, objShader,
-                  glm::scale(
-                      glm::rotate(
-                          glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, -4.0f)),
-                          glm::radians(180.0f),
-                          glm::vec3(0.0f, 1.0f, 0.0f)),
-                      robotScale),
+                  makeSceneTransform(glm::vec3(-3.0f, 0.0f, -4.0f), robotFacingYaw) * robotAssetCorrection,
                   view, proj);
 
         // ── Swap + poll (provided)
