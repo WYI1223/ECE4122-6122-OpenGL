@@ -54,27 +54,6 @@ static bool g_firstMouse = true; // prevents view jump on first RMB press
 // ── Frame timing ──────────────────────────────────────────────────────────────
 static float g_deltaTime = 0.f;
 static float g_lastFrame = 0.f;
-static float g_lastDebugPrint = -1.f;
-
-// Temporary stage-3 validation aid: print camera state while the scene is still
-// visually empty. PR-HW3-06 should comment this out or remove it once real
-// world geometry is visible on screen.
-static void debugCameraState(const char *reason, bool force = false)
-{
-    const float now = (float)glfwGetTime();
-    if (!force && g_lastDebugPrint >= 0.f && (now - g_lastDebugPrint) < 0.20f)
-        return;
-
-    g_lastDebugPrint = now;
-    std::cout << "[Stage3 Debug] " << reason
-              << " pos=("
-              << g_camera.position.x << ", "
-              << g_camera.position.y << ", "
-              << g_camera.position.z << ")"
-              << " yaw=" << g_camera.yaw
-              << " pitch=" << g_camera.pitch
-              << " fov=" << g_camera.fov << "\n";
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // framebufferSizeCallback (provided)
@@ -136,7 +115,6 @@ static void cursorPosCallback(GLFWwindow *, double xpos, double ypos)
     g_lastY = (float)ypos;
 
     g_camera.processMouseMovement(dx, dy);
-    debugCameraState("mouse");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -147,7 +125,6 @@ static void cursorPosCallback(GLFWwindow *, double xpos, double ypos)
 static void scrollCallback(GLFWwindow *, double /*xo*/, double yo)
 {
     g_camera.processScroll((float)yo);
-    debugCameraState("scroll", true);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -161,52 +138,24 @@ static void scrollCallback(GLFWwindow *, double /*xo*/, double yo)
 // ─────────────────────────────────────────────────────────────────────────────
 static void processInput(GLFWwindow *window)
 {
-    bool moved = false;
-    static bool prevResetDown = false;
-
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    const bool resetDown = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;
-    if (resetDown)
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
         g_camera.reset();
-    if (resetDown && !prevResetDown)
-        debugCameraState("reset", true);
-    prevResetDown = resetDown;
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    {
         g_camera.processKeyboard(CameraDir::FORWARD, g_deltaTime);
-        moved = true;
-    }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    {
         g_camera.processKeyboard(CameraDir::BACKWARD, g_deltaTime);
-        moved = true;
-    }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    {
         g_camera.processKeyboard(CameraDir::LEFT, g_deltaTime);
-        moved = true;
-    }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    {
         g_camera.processKeyboard(CameraDir::RIGHT, g_deltaTime);
-        moved = true;
-    }
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-    {
         g_camera.processKeyboard(CameraDir::DOWN, g_deltaTime);
-        moved = true;
-    }
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-    {
         g_camera.processKeyboard(CameraDir::UP, g_deltaTime);
-        moved = true;
-    }
-
-    if (moved)
-        debugCameraState("move");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -331,12 +280,17 @@ static void drawModel(Model &model, Shader &sh,
                       const glm::mat4 &view,
                       const glm::mat4 &proj)
 {
-    // TODO
-    (void)model;
-    (void)sh;
-    (void)modelMat;
-    (void)view;
-    (void)proj;
+    const glm::mat3 normal3 = glm::transpose(glm::inverse(glm::mat3(modelMat)));
+    glm::mat4 normal4(1.0f);
+    normal4[0] = glm::vec4(normal3[0], 0.0f);
+    normal4[1] = glm::vec4(normal3[1], 0.0f);
+    normal4[2] = glm::vec4(normal3[2], 0.0f);
+
+    sh.setMat4("model", modelMat);
+    sh.setMat4("view", view);
+    sh.setMat4("projection", proj);
+    sh.setMat4("normalMatrix", normal4);
+    model.draw(sh);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -402,10 +356,10 @@ int main()
     // ── Model loading ─────────────────────────────────────────────────────────
     // Place each OBJ (with .mtl and textures) in assets/models/<n>/
 
-    //    Model mFarmhouse("./assets/models/farmhouse/Farm_house.obj");
-    //    Model mBarrel   ("./assets/models/barrel/Barrel_OBJ.obj");
-    //    Model mTree     ("./assets/models/pine_tree/Pine_Tree.obj");
-    //    Model mBench    ("./assets/models/bench/wooden_bench.obj");
+    Model mFarmhouse("./assets/models/farmhouse/Farm_house.obj");
+    Model mBarrel("./assets/models/barrel/Barrel_OBJ.obj");
+    Model mTree("./assets/models/pinetree/Pine_Tree.obj");
+    Model mBench("./assets/models/bench/wooden_bench.obj");
     Model mLamp("./assets/models/lamp/objLamp.obj");
     Model mRobot("./assets/models/robot/Robot.obj");
 
@@ -438,8 +392,18 @@ int main()
         objShader.use();
         objShader.setVec3("viewPos", g_camera.position);
         objShader.setFloat("material.shininess", 32.0f);
-        (void)view;
-        (void)proj;
+        setLightUniforms(objShader);
+
+        objShader.setMat4("model", glm::mat4(1.0f));
+        objShader.setMat4("view", view);
+        objShader.setMat4("projection", proj);
+        objShader.setMat4("normalMatrix", glm::mat4(1.0f));
+        objShader.setInt("material.hasDiffuse", 0);
+        objShader.setInt("material.hasSpecular", 0);
+        objShader.setInt("material.hasEmissive", 0);
+        glBindVertexArray(g_terrainVAO);
+        glDrawElements(GL_TRIANGLES, g_terrainIndexCount, GL_UNSIGNED_INT, nullptr);
+        glBindVertexArray(0);
 
         // ── Draw terrain
         // TODO: bind g_terrainVAO and draw the 6 terrain indices
@@ -458,6 +422,84 @@ int main()
         //   Robot            (-3,0, -4)     rot 180° y (facing camera)
 
         // TODO: add drawModel calls for each object above
+        drawModel(mFarmhouse, objShader,
+                  glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -10.0f)),
+                  view, proj);
+
+        drawModel(mBarrel, objShader,
+                  glm::translate(glm::mat4(1.0f), glm::vec3(3.5f, 0.0f, -8.0f)),
+                  view, proj);
+
+        drawModel(mBarrel, objShader,
+                  glm::rotate(
+                      glm::translate(glm::mat4(1.0f), glm::vec3(4.5f, 0.0f, -8.0f)),
+                      glm::radians(15.0f),
+                      glm::vec3(0.0f, 1.0f, 0.0f)),
+                  view, proj);
+
+        drawModel(mTree, objShader,
+                  glm::scale(
+                      glm::rotate(
+                          glm::translate(glm::mat4(1.0f), glm::vec3(-12.0f, 0.0f, -12.0f)),
+                          glm::radians(12.0f),
+                          glm::vec3(0.0f, 1.0f, 0.0f)),
+                      glm::vec3(1.0f, 1.45f, 1.0f)),
+                  view, proj);
+
+        drawModel(mTree, objShader,
+                  glm::scale(
+                      glm::rotate(
+                          glm::translate(glm::mat4(1.0f), glm::vec3(12.0f, 0.0f, -12.0f)),
+                          glm::radians(28.0f),
+                          glm::vec3(0.0f, 1.0f, 0.0f)),
+                      glm::vec3(1.1f, 1.65f, 0.95f)),
+                  view, proj);
+
+        drawModel(mTree, objShader,
+                  glm::scale(
+                      glm::rotate(
+                          glm::translate(glm::mat4(1.0f), glm::vec3(-12.0f, 0.0f, 12.0f)),
+                          glm::radians(8.0f),
+                          glm::vec3(0.0f, 1.0f, 0.0f)),
+                      glm::vec3(0.95f, 1.35f, 1.05f)),
+                  view, proj);
+
+        drawModel(mTree, objShader,
+                  glm::scale(
+                      glm::rotate(
+                          glm::translate(glm::mat4(1.0f), glm::vec3(12.0f, 0.0f, 12.0f)),
+                          glm::radians(40.0f),
+                          glm::vec3(0.0f, 1.0f, 0.0f)),
+                      glm::vec3(1.05f, 1.55f, 0.9f)),
+                  view, proj);
+
+        drawModel(mBench, objShader,
+                  glm::scale(
+                      glm::rotate(
+                          glm::translate(glm::mat4(1.0f), glm::vec3(-6.0f, 0.0f, 2.0f)),
+                          glm::radians(-30.0f),
+                          glm::vec3(0.0f, 1.0f, 0.0f)),
+                      glm::vec3(1.15f, 0.95f, 1.0f)),
+                  view, proj);
+
+        drawModel(mLamp, objShader,
+                  glm::scale(
+                      glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 0.0f, 0.0f)),
+                      glm::vec3(0.5f, 0.5f, 0.5f)),
+                  view, proj);
+
+        drawModel(mLamp, objShader,
+                  glm::scale(
+                      glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 0.0f, 5.0f)),
+                      glm::vec3(0.5f, 0.5f, 0.5f)),
+                  view, proj);
+
+        drawModel(mRobot, objShader,
+                  glm::rotate(
+                      glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, -4.0f)),
+                      glm::radians(180.0f),
+                      glm::vec3(0.0f, 1.0f, 0.0f)),
+                  view, proj);
 
         // ── Swap + poll (provided)
         glfwSwapBuffers(window);

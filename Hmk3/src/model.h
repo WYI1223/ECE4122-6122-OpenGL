@@ -29,6 +29,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -213,7 +214,26 @@ private:
             if (mat->GetTexture(type, i, &aiPath) != AI_SUCCESS)
                 continue;
 
-            const fs::path materialPath = fs::path(aiPath.C_Str()).lexically_normal();
+            std::string rawPath = aiPath.C_Str();
+
+            std::istringstream iss(rawPath);
+            std::vector<std::string> tokens;
+            std::string token;
+            while (iss >> token) {
+                if (!token.empty() && token[0] == '#')
+                    break;
+                tokens.push_back(token);
+            }
+
+            if (tokens.empty())
+                continue;
+
+            if (tokens.size() >= 2 && tokens[0].rfind("map_", 0) == 0)
+                rawPath = tokens[1];
+            else
+                rawPath = tokens[0];
+
+            const fs::path materialPath = fs::path(rawPath).lexically_normal();
             fs::path resolvedPath = (fs::path(m_directory) / materialPath).lexically_normal();
 
             // Some exported MTL files keep a useful relative subdirectory
