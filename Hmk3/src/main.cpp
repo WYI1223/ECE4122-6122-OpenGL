@@ -54,6 +54,27 @@ static bool g_firstMouse = true; // prevents view jump on first RMB press
 // ── Frame timing ──────────────────────────────────────────────────────────────
 static float g_deltaTime = 0.f;
 static float g_lastFrame = 0.f;
+static float g_lastDebugPrint = -1.f;
+
+// Temporary stage-3 validation aid: print camera state while the scene is still
+// visually empty. PR-HW3-06 should comment this out or remove it once real
+// world geometry is visible on screen.
+static void debugCameraState(const char *reason, bool force = false)
+{
+    const float now = (float)glfwGetTime();
+    if (!force && g_lastDebugPrint >= 0.f && (now - g_lastDebugPrint) < 0.20f)
+        return;
+
+    g_lastDebugPrint = now;
+    std::cout << "[Stage3 Debug] " << reason
+              << " pos=("
+              << g_camera.position.x << ", "
+              << g_camera.position.y << ", "
+              << g_camera.position.z << ")"
+              << " yaw=" << g_camera.yaw
+              << " pitch=" << g_camera.pitch
+              << " fov=" << g_camera.fov << "\n";
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // framebufferSizeCallback (provided)
@@ -72,9 +93,18 @@ static void framebufferSizeCallback(GLFWwindow *, int w, int h)
 // ─────────────────────────────────────────────────────────────────────────────
 static void mouseButtonCallback(GLFWwindow *, int button, int action, int /*mods*/)
 {
-    // TODO
-    (void)button;
-    (void)action;
+    if (button == GLFW_MOUSE_BUTTON_RIGHT)
+    {
+        if (action == GLFW_PRESS)
+        {
+            g_rmb = true;
+            g_firstMouse = true;
+        }
+        else if (action == GLFW_RELEASE)
+        {
+            g_rmb = false;
+        }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -88,9 +118,25 @@ static void mouseButtonCallback(GLFWwindow *, int button, int action, int /*mods
 // ─────────────────────────────────────────────────────────────────────────────
 static void cursorPosCallback(GLFWwindow *, double xpos, double ypos)
 {
-    // TODO
-    (void)xpos;
-    (void)ypos;
+    if (!g_rmb)
+        return;
+
+    if (g_firstMouse)
+    {
+        g_lastX = (float)xpos;
+        g_lastY = (float)ypos;
+        g_firstMouse = false;
+        return;
+    }
+
+    const float dx = (float)xpos - g_lastX;
+    const float dy = g_lastY - (float)ypos;
+
+    g_lastX = (float)xpos;
+    g_lastY = (float)ypos;
+
+    g_camera.processMouseMovement(dx, dy);
+    debugCameraState("mouse");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -100,8 +146,8 @@ static void cursorPosCallback(GLFWwindow *, double xpos, double ypos)
 // ─────────────────────────────────────────────────────────────────────────────
 static void scrollCallback(GLFWwindow *, double /*xo*/, double yo)
 {
-    // TODO
-    (void)yo;
+    g_camera.processScroll((float)yo);
+    debugCameraState("scroll", true);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,8 +161,52 @@ static void scrollCallback(GLFWwindow *, double /*xo*/, double yo)
 // ─────────────────────────────────────────────────────────────────────────────
 static void processInput(GLFWwindow *window)
 {
-    // TODO
-    (void)window;
+    bool moved = false;
+    static bool prevResetDown = false;
+
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    const bool resetDown = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;
+    if (resetDown)
+        g_camera.reset();
+    if (resetDown && !prevResetDown)
+        debugCameraState("reset", true);
+    prevResetDown = resetDown;
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    {
+        g_camera.processKeyboard(CameraDir::FORWARD, g_deltaTime);
+        moved = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    {
+        g_camera.processKeyboard(CameraDir::BACKWARD, g_deltaTime);
+        moved = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    {
+        g_camera.processKeyboard(CameraDir::LEFT, g_deltaTime);
+        moved = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    {
+        g_camera.processKeyboard(CameraDir::RIGHT, g_deltaTime);
+        moved = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+    {
+        g_camera.processKeyboard(CameraDir::DOWN, g_deltaTime);
+        moved = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+    {
+        g_camera.processKeyboard(CameraDir::UP, g_deltaTime);
+        moved = true;
+    }
+
+    if (moved)
+        debugCameraState("move");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -330,19 +420,26 @@ int main()
         g_deltaTime = now - g_lastFrame;
         g_lastFrame = now;
 
-        // TODO: call processInput(window)
+        processInput(window);
 
         // ── Clear
-        // TODO: Set a dusk sky clear color and clear COLOR + DEPTH buffers
+        glClearColor(0.10f, 0.11f, 0.18f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // ── Build view + projection matrices
-        // TODO: glm::mat4 view = g_camera.getViewMatrix();
-        // TODO: glm::mat4 proj = glm::perspective(…)  near=0.1, far=500
+        glm::mat4 view = g_camera.getViewMatrix();
+        glm::mat4 proj = glm::perspective(
+            glm::radians(g_camera.fov),
+            (float)SCR_W / (float)SCR_H,
+            0.1f,
+            500.0f);
 
         // ── Bind shader, upload per-frame constants
-        // TODO: objShader.use();
-        // TODO: upload viewPos and material.shininess
-        // TODO: call setLightUniforms(objShader)
+        objShader.use();
+        objShader.setVec3("viewPos", g_camera.position);
+        objShader.setFloat("material.shininess", 32.0f);
+        (void)view;
+        (void)proj;
 
         // ── Draw terrain
         // TODO: bind g_terrainVAO and draw the 6 terrain indices

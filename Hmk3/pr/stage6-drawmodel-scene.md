@@ -37,6 +37,7 @@ In scope:
 - draw the terrain VAO from the existing terrain buffers
 - instantiate and place the required scene objects in world space
 - use rotation and non-uniform scale where the homework requires visible variety
+- comment out or remove the temporary stage-3 camera debug print path in `src/main.cpp` once on-screen scene geometry makes manual verification possible
 
 Out of scope:
 - implementing fragment-lighting functions
