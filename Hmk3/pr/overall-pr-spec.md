@@ -242,10 +242,12 @@ Every stage should include both build verification and runtime verification.
 Build verification:
 
 ```bash
-cd f:/Learn/ECE6122_hmk3
-cmake -B build -S .
-cmake --build build
+cd F:/Learn/ECE4122-6122-OpenGL
+cmake --build build_hmk3_stage0 --config Debug --target Hmk3_Skeleton
 ```
+
+If `cmake` is not on `PATH` on the local machine, use the Stage 0 documented
+Visual Studio bundled `cmake.exe` path instead of the bare `cmake` command.
 
 Runtime verification should be milestone-specific:
 
@@ -254,7 +256,7 @@ Runtime verification should be milestone-specific:
 - after Stage 5: confirm at least one textured model renders completely
 - after Stage 6: confirm five-plus objects and ground are visible together
 - after Stage 8: confirm light response changes as camera moves
-- after Stage 9: confirm README and submission packaging checklist are complete
+- after Stage 9: confirm homework README and submission packaging checklist are complete
 
 ## Definition Of Done
 
@@ -268,4 +270,6 @@ This overall plan is considered successfully delivered when all of the following
 
 ## Follow-Up
 
-The next step after approving this file is to define and execute `PR-HW3-00`, then align each existing stage document to this roadmap without changing the roadmap itself.
+The next step after approving this file is to execute `PR-HW3-01` onward using
+the aligned stage documents, with `PR-HW3-00` already serving as the baseline
+gate.

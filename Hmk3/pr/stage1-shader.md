@@ -1,122 +1,99 @@
-# PR-HW3-01: Shader Compilation & Linking
+# PR-HW3-01: Shader Compile/Link Foundation
 
-- Proposed title: `feat(shader): implement GLSL compile, link, and constructor`
+- Proposed title: `feat(shader): implement compile/link foundation for object shader`
 - Status: Draft
 
 ## Goal
 
-实现 Shader 类的核心功能：编译顶点/片元着色器源码、链接为 program、构造函数串联整个流程。这是所有渲染的前置基础。
+Implement the shader-program foundation in `src/shader.h` so the homework can
+read, compile, and link `shaders/object.vert` and `shaders/object.frag`.
 
-前置条件：无
+This PR follows the fixed skeleton as-is:
+- keep the existing `Shader` class interface
+- keep the existing uniform setter API
+- use the provided `GLEW`-based loader path
+- do not introduce `GLAD` here; the PDF mention was a course typo
+
+## Preconditions
+
+`PR-HW3-00` is complete.
 
 ## Execution Contract (Canonical Inputs)
 
-| 类型 | 引用 | 与本 PR 的关系 |
-|------|------|---------------|
-| skeleton | `src/shader.h` | 包含 3 个 TODO 函数需要实现 |
-| shader source | `shaders/object.vert` | 构造函数需要读取并编译此文件 |
-| shader source | `shaders/object.frag` | 构造函数需要读取并编译此文件 |
+| Type | Reference | Relation to this PR |
+|------|------|------|
+| skeleton | `src/shader.h` | Contains the constructor plus `compile()` and `checkLink()` TODOs |
+| shader source | `shaders/object.vert` | Vertex shader source loaded by the constructor |
+| shader source | `shaders/object.frag` | Fragment shader source loaded by the constructor |
+| runtime usage | `src/main.cpp` | Instantiates `Shader objShader("shaders/object.vert", "shaders/object.frag")` |
 
 ## Scope
 
 In scope:
-- 实现 `compile()` — 创建 shader 对象、上传源码、编译、检查错误
-- 实现 `checkLink()` — 检查 program 链接状态、打印错误日志
-- 实现构造函数 — 读取文件、编译、创建 program、attach、link、清理
+- implement `Shader::compile()`
+- implement `Shader::checkLink()`
+- implement the constructor flow: read, compile, attach, link, cleanup
+- preserve error logging so shader failures are visible in the console
 
 Out of scope:
-- uniform setter（已提供，不修改）
-- readFile（已提供，不修改）
-- 其他文件的任何修改
+- changing uniform setter behavior
+- editing shader source logic
+- changing the shader file paths used by `main.cpp`
 
-## Design
+## Design Constraints
 
-```cpp
-// compile()
-static GLuint compile(GLenum type, const char* src, const char* label)
-{
-    GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, &src, nullptr);
-    glCompileShader(shader);
-
-    int success;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        char buf[512];
-        glGetShaderInfoLog(shader, 512, nullptr, buf);
-        std::cerr << "[Shader] " << label << " compile error:\n" << buf << "\n";
-    }
-    return shader;
-}
-
-// checkLink()
-static void checkLink(GLuint prog)
-{
-    int success;
-    glGetProgramiv(prog, GL_LINK_STATUS, &success);
-    if (!success) {
-        char buf[512];
-        glGetProgramInfoLog(prog, 512, nullptr, buf);
-        std::cerr << "[Shader] link error:\n" << buf << "\n";
-    }
-}
-
-// Constructor
-Shader(const char* vertPath, const char* fragPath)
-{
-    std::string vCode = readFile(vertPath);
-    std::string fCode = readFile(fragPath);
-
-    GLuint vs = compile(GL_VERTEX_SHADER,   vCode.c_str(), vertPath);
-    GLuint fs = compile(GL_FRAGMENT_SHADER, fCode.c_str(), fragPath);
-
-    id = glCreateProgram();
-    glAttachShader(id, vs);
-    glAttachShader(id, fs);
-    glLinkProgram(id);
-    checkLink(id);
-
-    glDeleteShader(vs);
-    glDeleteShader(fs);
-}
-```
+- Preserve the current public API of `Shader`.
+- Use `glCreateShader`, `glShaderSource`, `glCompileShader`, and shader-info logs for compile failures.
+- Use `glCreateProgram`, `glAttachShader`, `glLinkProgram`, and program-info logs for link failures.
+- Delete intermediate shader objects after linking.
+- Treat relative shader paths in the current runtime layout as part of the contract.
 
 ## Task Breakdown
 
-| Task | Lane | 内容 | 文件 | 估算 | 依赖 |
-|------|------|------|------|------|------|
-| T1 | impl | 实现 `compile()`, `checkLink()`, 构造函数 | `src/shader.h` | 5min | 无 |
+| Task | Lane | Description | Target | Depends on |
+|------|------|------|------|------|
+| T1 | impl | Implement `compile()` with compile-status checks and info-log printing | `src/shader.h` | none |
+| T2 | impl | Implement `checkLink()` with link-status checks and info-log printing | `src/shader.h` | T1 |
+| T3 | impl | Implement the constructor that reads both files, compiles both stages, links the program, and deletes temporary shader handles | `src/shader.h` | T1-T2 |
 
 ## Planned File Changes
 
-- `[edit]` `src/shader.h` (填充 3 个 TODO 函数体)
+- `[edit]` `src/shader.h`
 
 ## Verification
 
-### CI gates
+### Build verification
 
 ```bash
-cd f:/Learn/ECE6122_hmk3
-cmake -B build -S . && cmake --build build 2>&1 | tail -5
+cd F:/Learn/ECE4122-6122-OpenGL
+cmake --build build_hmk3_stage0 --config Debug --target Hmk3_Skeleton
 ```
 
-### Structural verification
+If `cmake` is not on `PATH`, use the Stage 0 documented Visual Studio bundled
+`cmake.exe` path.
+
+### Runtime verification
 
 ```bash
-# 运行程序，检查 console 输出
-# 预期: 打印 OpenGL 版本和 GLEW 版本，无 "[Shader] compile error" 或 "[Shader] link error"
-./build/bin/Hmk3_Skeleton.exe 2>&1 | head -10
+cd F:/Learn/ECE4122-6122-OpenGL/build/bin
+./Hmk3_Skeleton.exe
 ```
 
-## Risk
+Expected result:
+- the app launches and opens a window
+- no `[Shader] compile error` message appears
+- no `[Shader] link error` message appears
 
-| 风险 | 严重度 | 缓解 |
-|------|--------|------|
-| shader 文件路径相对于 exe 工作目录，找不到文件 | MEDIUM | 确认 exe 运行时 cwd 为项目根目录，或 assets copy 机制正确 |
+## Risks
+
+| Risk | Why it matters | Mitigation |
+|------|------|------|
+| Shader paths resolve relative to the executable working directory | The constructor may fail even if the code is correct | Continue launching from the Stage 0 verified runtime layout |
+| Compile errors are swallowed | Later stages become harder to debug | Print shader and program info logs immediately on failure |
 
 ## Acceptance Criteria
 
-- [ ] `src/shader.h` 中 `compile()`、`checkLink()`、构造函数三处 TODO 均已实现
-- [ ] 编译零错误
-- [ ] 程序启动后控制台无 `[Shader] compile error` 或 `[Shader] link error` 输出
-- [ ] 程序启动后窗口打开（黑屏是预期的）
+- [ ] All TODOs in `src/shader.h` covered by this PR are implemented
+- [ ] `Hmk3_Skeleton` builds successfully from the top-level repo
+- [ ] The program launches without shader compile or link errors
+- [ ] No `GLAD`-specific work or interface changes were introduced

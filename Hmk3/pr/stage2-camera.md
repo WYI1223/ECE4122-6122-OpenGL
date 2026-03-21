@@ -1,133 +1,90 @@
-# PR-HW3-02: Camera Implementation
+# PR-HW3-02: Camera Math And Movement
 
-- Proposed title: `feat(camera): implement free-fly FPS camera`
+- Proposed title: `feat(camera): implement free-look camera math and controls`
 - Status: Draft
 
 ## Goal
 
-实现 FPS 风格自由飞行摄像机的全部方法：向量更新、视图矩阵、键盘移动、鼠标旋转、滚轮缩放、重置。
+Implement the camera methods in `src/camera.h` so the skeleton has a working
+FPS-style camera model before GLFW callbacks are wired in `main.cpp`.
 
-前置条件：无（不依赖 Stage 1，可并行开发）
+This PR is intentionally limited to camera math and state transitions. It does
+not own GLFW callback plumbing.
+
+## Preconditions
+
+`PR-HW3-00` is complete.
 
 ## Execution Contract (Canonical Inputs)
 
-| 类型 | 引用 | 与本 PR 的关系 |
-|------|------|---------------|
-| skeleton | `src/camera.h` | 包含 7 个 TODO 函数需要实现 |
+| Type | Reference | Relation to this PR |
+|------|------|------|
+| skeleton | `src/camera.h` | Contains all camera TODOs for this PR |
+| consumer | `src/main.cpp` | Uses `g_camera`, `getViewMatrix()`, and movement methods |
+| math contract | PDF camera requirements + current skeleton | Requires keyboard motion, mouse look, scroll zoom, and reset behavior |
 
 ## Scope
 
 In scope:
-- `updateVectors()` — 从 yaw/pitch 计算 front/right/up
-- 构造函数体 — 调用 `updateVectors()`
-- `getViewMatrix()` — 返回 `glm::lookAt`
-- `processKeyboard()` — 6 方向移动
-- `processMouseMovement()` — yaw/pitch 更新 + pitch clamp
-- `processScroll()` — FOV 缩放
-- `reset()` — 恢复初始状态
+- implement `updateVectors()`
+- implement the constructor initialization path
+- implement `getViewMatrix()`
+- implement `processKeyboard()`
+- implement `processMouseMovement()`
+- implement `processScroll()`
+- implement `reset()`
 
 Out of scope:
-- main.cpp 中的回调函数（Stage 3）
-- Camera 类接口变更
+- GLFW callback registration and input polling in `main.cpp`
+- any change to public camera fields used by the rest of the skeleton
 
-## Design
+## Design Constraints
 
-```cpp
-void updateVectors()
-{
-    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-    front.y = sin(glm::radians(pitch));
-    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    front = glm::normalize(front);
-    right = glm::normalize(glm::cross(front, worldUp));
-    up    = glm::normalize(glm::cross(right, front));
-}
-
-Camera(glm::vec3 pos = { 0.f, 5.f, 15.f })
-    : position(pos)
-{
-    updateVectors();
-}
-
-glm::mat4 getViewMatrix() const
-{
-    return glm::lookAt(position, position + front, up);
-}
-
-void processKeyboard(CameraDir dir, float dt)
-{
-    float dist = speed * dt;
-    switch (dir) {
-        case CameraDir::FORWARD:  position += front   * dist; break;
-        case CameraDir::BACKWARD: position -= front   * dist; break;
-        case CameraDir::LEFT:     position -= right   * dist; break;
-        case CameraDir::RIGHT:    position += right   * dist; break;
-        case CameraDir::UP:       position += worldUp * dist; break;
-        case CameraDir::DOWN:     position -= worldUp * dist; break;
-    }
-}
-
-void processMouseMovement(float dx, float dy, bool constrainPitch)
-{
-    yaw   += dx * mouseSens;
-    pitch += dy * mouseSens;
-    if (constrainPitch)
-        pitch = std::clamp(pitch, -89.f, 89.f);
-    updateVectors();
-}
-
-void processScroll(float yOffset)
-{
-    fov -= yOffset;
-    fov = std::clamp(fov, 1.f, 90.f);
-}
-
-void reset()
-{
-    position = { 0.f, 5.f, 15.f };
-    yaw   = -90.f;
-    pitch = 0.f;
-    fov   = 45.f;
-    updateVectors();
-}
-```
+- Preserve the existing `Camera` data layout and method signatures.
+- Keep the startup camera at `(0, 5, 15)` with `yaw = -90`, `pitch = 0`, `fov = 45`.
+- Support the skeleton's full control set: `W/A/S/D`, `Q/E`, RMB drag, scroll, and `R`.
+- Clamp pitch to avoid camera flips.
+- Clamp FOV to a safe range for later projection-matrix creation.
 
 ## Task Breakdown
 
-| Task | Lane | 内容 | 文件 | 估算 | 依赖 |
-|------|------|------|------|------|------|
-| T1 | impl | 实现全部 7 个 TODO 方法 | `src/camera.h` | 10min | 无 |
+| Task | Lane | Description | Target | Depends on |
+|------|------|------|------|------|
+| T1 | impl | Implement vector recomputation from yaw/pitch and normalize the basis vectors | `src/camera.h` | none |
+| T2 | impl | Implement view matrix, keyboard motion, mouse look, scroll zoom, and reset | `src/camera.h` | T1 |
 
 ## Planned File Changes
 
-- `[edit]` `src/camera.h` (填充 7 个 TODO 函数体)
+- `[edit]` `src/camera.h`
 
 ## Verification
 
-### CI gates
+### Build verification
 
 ```bash
-cd f:/Learn/ECE6122_hmk3
-cmake -B build -S . && cmake --build build 2>&1 | tail -5
+cd F:/Learn/ECE4122-6122-OpenGL
+cmake --build build_hmk3_stage0 --config Debug --target Hmk3_Skeleton
 ```
 
 ### Structural verification
 
-```bash
-# 数学验证: yaw=-90, pitch=0 时 front 应为 (0, 0, -1)
-# cos(-90°)*cos(0°) = 0,  sin(0°) = 0,  sin(-90°)*cos(0°) = -1
-# 结果: front = (0, 0, -1) ✓
-```
+Expected logical results after implementation:
+- default `front` is approximately `(0, 0, -1)`
+- `getViewMatrix()` no longer returns the identity matrix
+- `reset()` restores `(0, 5, 15)`, `yaw = -90`, `pitch = 0`, `fov = 45`
+- `processScroll()` keeps `fov` within the intended clamp range
 
-## Risk
+## Risks
 
-| 风险 | 严重度 | 缓解 |
-|------|--------|------|
-| pitch 未 clamp 导致万向锁翻转 | LOW | `std::clamp(pitch, -89.f, 89.f)` 已在设计中 |
+| Risk | Why it matters | Mitigation |
+|------|------|------|
+| Wrong front-vector math | All later movement and lighting-view behavior becomes confusing | Match the documented yaw/pitch equations exactly |
+| Missing pitch clamp | Mouse look can flip or gimbal unexpectedly | Clamp pitch before recomputing vectors |
+| Moving along `up` instead of `worldUp` | Vertical motion becomes camera-tilt dependent | Keep `Q/E` mapped to `worldUp` as the skeleton expects |
 
 ## Acceptance Criteria
 
-- [ ] `src/camera.h` 中 7 处 TODO 均已实现
-- [ ] 编译零错误
-- [ ] 初始 `front` 向量为 (0, 0, -1)（yaw=-90°, pitch=0° 的数学结果）
-- [ ] `getViewMatrix()` 不再返回单位矩阵
+- [ ] All camera TODOs in `src/camera.h` are implemented
+- [ ] The camera basis vectors update correctly from yaw/pitch
+- [ ] View-matrix generation uses `glm::lookAt`
+- [ ] Movement, zoom, and reset behavior match the current skeleton contract
