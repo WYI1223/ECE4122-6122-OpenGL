@@ -90,8 +90,18 @@ vec3 getSpecularColor()
 vec3 calcDirLight(DirLight light, vec3 norm, vec3 viewDir,
                   vec3 diffColor, vec3 specColor)
 {
-    // TODO
-    return vec3(0.0);
+    vec3 lightDir = normalize(-light.direction);
+    vec3 halfDir = normalize(lightDir + viewDir);
+
+    float diff = max(dot(norm, lightDir), 0.0);
+    float spec = 0.0;
+    if (diff > 0.0)
+        spec = pow(max(dot(norm, halfDir), 0.0), material.shininess);
+
+    vec3 ambient = light.ambient * diffColor;
+    vec3 diffuse = light.diffuse * diff * diffColor;
+    vec3 specular = light.specular * spec * specColor;
+    return ambient + diffuse + specular;
 }
 
 // ── calcPointLight ────────────────────────────────────────────────────────────
@@ -101,8 +111,23 @@ vec3 calcDirLight(DirLight light, vec3 norm, vec3 viewDir,
 vec3 calcPointLight(PointLight light, vec3 norm, vec3 fragPos, vec3 viewDir,
                     vec3 diffColor, vec3 specColor)
 {
-    // TODO
-    return vec3(0.0);
+    vec3 lightDir = normalize(light.position - fragPos);
+    vec3 halfDir = normalize(lightDir + viewDir);
+
+    float diff = max(dot(norm, lightDir), 0.0);
+    float spec = 0.0;
+    if (diff > 0.0)
+        spec = pow(max(dot(norm, halfDir), 0.0), material.shininess);
+
+    float dist = length(light.position - fragPos);
+    float atten = 1.0 / (light.constant +
+                         light.linear * dist +
+                         light.quadratic * dist * dist);
+
+    vec3 ambient = light.ambient * diffColor;
+    vec3 diffuse = light.diffuse * diff * diffColor;
+    vec3 specular = light.specular * spec * specColor;
+    return (ambient + diffuse + specular) * atten;
 }
 
 // ── main (provided) ───────────────────────────────────────────────────────────
