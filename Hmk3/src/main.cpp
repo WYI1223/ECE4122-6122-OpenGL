@@ -166,6 +166,7 @@ static GLuint g_terrainVAO{0};
 static GLuint g_terrainVBO{0};
 static GLuint g_terrainEBO{0};
 static int g_terrainIndexCount{0};
+static GLuint g_groundTex{0};
 
 static void buildTerrain()
 {
@@ -231,6 +232,37 @@ static void buildTerrain()
     glBindVertexArray(0);
 }
 
+static GLuint loadGroundTexture(const char *path)
+{
+    int w, h, channels;
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char *data = stbi_load(path, &w, &h, &channels, 0);
+    if (!data) {
+        std::cerr << "[Ground] Failed to load texture: " << path << "\n";
+        return 0;
+    }
+
+    GLenum fmt = GL_RGB;
+    if (channels == 1)
+        fmt = GL_RED;
+    else if (channels == 4)
+        fmt = GL_RGBA;
+
+    GLuint tex = 0;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, (GLint)fmt, w, h, 0, fmt, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    stbi_image_free(data);
+    return tex;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // setLightUniforms
 // Upload all light parameters to the currently-bound shader.
@@ -262,7 +294,26 @@ static void setLightUniforms(Shader &sh)
 
     // TODO – point light 1
 
-    (void)sh;
+    sh.setVec3("dirLight.direction", -0.5f, -1.0f, -0.5f);
+    sh.setVec3("dirLight.ambient", 0.30f, 0.24f, 0.18f);
+    sh.setVec3("dirLight.diffuse", 1.00f, 0.80f, 0.60f);
+    sh.setVec3("dirLight.specular", 0.80f, 0.70f, 0.60f);
+
+    sh.setVec3("pointLights[0].position", 5.0f, 4.0f, 0.0f);
+    sh.setVec3("pointLights[0].ambient", 0.08f, 0.08f, 0.10f);
+    sh.setVec3("pointLights[0].diffuse", 0.90f, 0.90f, 1.00f);
+    sh.setVec3("pointLights[0].specular", 1.00f, 1.00f, 1.00f);
+    sh.setFloat("pointLights[0].constant", 1.0f);
+    sh.setFloat("pointLights[0].linear", 0.09f);
+    sh.setFloat("pointLights[0].quadratic", 0.032f);
+
+    sh.setVec3("pointLights[1].position", -5.0f, 4.0f, 5.0f);
+    sh.setVec3("pointLights[1].ambient", 0.08f, 0.08f, 0.10f);
+    sh.setVec3("pointLights[1].diffuse", 0.90f, 0.90f, 1.00f);
+    sh.setVec3("pointLights[1].specular", 1.00f, 1.00f, 1.00f);
+    sh.setFloat("pointLights[1].constant", 1.0f);
+    sh.setFloat("pointLights[1].linear", 0.09f);
+    sh.setFloat("pointLights[1].quadratic", 0.032f);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -365,6 +416,7 @@ int main()
 
     // ── Terrain quad ──────────────────────────────────────────────────────────
     buildTerrain();
+    g_groundTex = loadGroundTexture("./assets/models/pinetree/Texture/grass.jpg");
 
     // ── Render loop ───────────────────────────────────────────────────────────
     while (!glfwWindowShouldClose(window))
@@ -398,12 +450,18 @@ int main()
         objShader.setMat4("view", view);
         objShader.setMat4("projection", proj);
         objShader.setMat4("normalMatrix", glm::mat4(1.0f));
-        objShader.setInt("material.hasDiffuse", 0);
+        objShader.setFloat("material.shininess", 8.0f);
+        objShader.setInt("material.diffuse0", 0);
+        objShader.setInt("material.hasDiffuse", g_groundTex != 0 ? 1 : 0);
         objShader.setInt("material.hasSpecular", 0);
         objShader.setInt("material.hasEmissive", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, g_groundTex);
         glBindVertexArray(g_terrainVAO);
         glDrawElements(GL_TRIANGLES, g_terrainIndexCount, GL_UNSIGNED_INT, nullptr);
         glBindVertexArray(0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        objShader.setFloat("material.shininess", 32.0f);
 
         // ── Draw terrain
         // TODO: bind g_terrainVAO and draw the 6 terrain indices
@@ -422,17 +480,23 @@ int main()
         //   Robot            (-3,0, -4)     rot 180° y (facing camera)
 
         // TODO: add drawModel calls for each object above
+        const glm::vec3 farmhouseScale(0.08f, 0.08f, 0.08f);
+        const glm::vec3 benchScale(0.02f, 0.02f, 0.02f);
+        const glm::vec3 robotScale(0.35f, 0.35f, 0.35f);
+
         drawModel(mFarmhouse, objShader,
-                  glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -10.0f)),
+                  glm::scale(
+                      glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 3.9f, -10.0f)),
+                      farmhouseScale),
                   view, proj);
 
         drawModel(mBarrel, objShader,
-                  glm::translate(glm::mat4(1.0f), glm::vec3(3.5f, 0.0f, -8.0f)),
+                  glm::translate(glm::mat4(1.0f), glm::vec3(6.8f, 0.0f, -5.4f)),
                   view, proj);
 
         drawModel(mBarrel, objShader,
                   glm::rotate(
-                      glm::translate(glm::mat4(1.0f), glm::vec3(4.5f, 0.0f, -8.0f)),
+                      glm::translate(glm::mat4(1.0f), glm::vec3(7.9f, 0.0f, -5.9f)),
                       glm::radians(15.0f),
                       glm::vec3(0.0f, 1.0f, 0.0f)),
                   view, proj);
@@ -440,37 +504,37 @@ int main()
         drawModel(mTree, objShader,
                   glm::scale(
                       glm::rotate(
-                          glm::translate(glm::mat4(1.0f), glm::vec3(-12.0f, 0.0f, -12.0f)),
+                          glm::translate(glm::mat4(1.0f), glm::vec3(-16.0f, 0.0f, -16.0f)),
                           glm::radians(12.0f),
                           glm::vec3(0.0f, 1.0f, 0.0f)),
-                      glm::vec3(1.0f, 1.45f, 1.0f)),
+                      glm::vec3(0.42f, 0.95f, 0.42f)),
                   view, proj);
 
         drawModel(mTree, objShader,
                   glm::scale(
                       glm::rotate(
-                          glm::translate(glm::mat4(1.0f), glm::vec3(12.0f, 0.0f, -12.0f)),
+                          glm::translate(glm::mat4(1.0f), glm::vec3(16.0f, 0.0f, -16.0f)),
                           glm::radians(28.0f),
                           glm::vec3(0.0f, 1.0f, 0.0f)),
-                      glm::vec3(1.1f, 1.65f, 0.95f)),
+                      glm::vec3(0.46f, 1.05f, 0.40f)),
                   view, proj);
 
         drawModel(mTree, objShader,
                   glm::scale(
                       glm::rotate(
-                          glm::translate(glm::mat4(1.0f), glm::vec3(-12.0f, 0.0f, 12.0f)),
+                          glm::translate(glm::mat4(1.0f), glm::vec3(-16.0f, 0.0f, 16.0f)),
                           glm::radians(8.0f),
                           glm::vec3(0.0f, 1.0f, 0.0f)),
-                      glm::vec3(0.95f, 1.35f, 1.05f)),
+                      glm::vec3(0.38f, 0.88f, 0.44f)),
                   view, proj);
 
         drawModel(mTree, objShader,
                   glm::scale(
                       glm::rotate(
-                          glm::translate(glm::mat4(1.0f), glm::vec3(12.0f, 0.0f, 12.0f)),
+                          glm::translate(glm::mat4(1.0f), glm::vec3(16.0f, 0.0f, 16.0f)),
                           glm::radians(40.0f),
                           glm::vec3(0.0f, 1.0f, 0.0f)),
-                      glm::vec3(1.05f, 1.55f, 0.9f)),
+                      glm::vec3(0.44f, 1.00f, 0.38f)),
                   view, proj);
 
         drawModel(mBench, objShader,
@@ -479,7 +543,7 @@ int main()
                           glm::translate(glm::mat4(1.0f), glm::vec3(-6.0f, 0.0f, 2.0f)),
                           glm::radians(-30.0f),
                           glm::vec3(0.0f, 1.0f, 0.0f)),
-                      glm::vec3(1.15f, 0.95f, 1.0f)),
+                      benchScale),
                   view, proj);
 
         drawModel(mLamp, objShader,
@@ -495,10 +559,12 @@ int main()
                   view, proj);
 
         drawModel(mRobot, objShader,
-                  glm::rotate(
-                      glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, -4.0f)),
-                      glm::radians(180.0f),
-                      glm::vec3(0.0f, 1.0f, 0.0f)),
+                  glm::scale(
+                      glm::rotate(
+                          glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, -0.05f, -4.0f)),
+                          glm::radians(180.0f),
+                          glm::vec3(0.0f, 1.0f, 0.0f)),
+                      robotScale),
                   view, proj);
 
         // ── Swap + poll (provided)
@@ -510,6 +576,8 @@ int main()
     glDeleteVertexArrays(1, &g_terrainVAO);
     glDeleteBuffers(1, &g_terrainVBO);
     glDeleteBuffers(1, &g_terrainEBO);
+    if (g_groundTex != 0)
+        glDeleteTextures(1, &g_groundTex);
 
     glfwDestroyWindow(window);
     glfwTerminate();

@@ -58,15 +58,35 @@ public:
     // Disable copy; allow move so std::vector<Mesh> is safe
     Mesh(const Mesh&)            = delete;
     Mesh& operator=(const Mesh&) = delete;
-    Mesh(Mesh&&)                 = default;
-    Mesh& operator=(Mesh&&)      = default;
+    Mesh(Mesh&& other) noexcept
+        : vertices(std::move(other.vertices))
+        , indices(std::move(other.indices))
+        , textures(std::move(other.textures))
+        , m_vao(std::exchange(other.m_vao, 0))
+        , m_vbo(std::exchange(other.m_vbo, 0))
+        , m_ebo(std::exchange(other.m_ebo, 0))
+    {
+    }
+
+    Mesh& operator=(Mesh&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+
+        releaseGPU();
+        vertices = std::move(other.vertices);
+        indices = std::move(other.indices);
+        textures = std::move(other.textures);
+        m_vao = std::exchange(other.m_vao, 0);
+        m_vbo = std::exchange(other.m_vbo, 0);
+        m_ebo = std::exchange(other.m_ebo, 0);
+        return *this;
+    }
 
     ~Mesh()
     {
         // Provided: clean up GPU resources
-        glDeleteVertexArrays(1, &m_vao);
-        glDeleteBuffers(1, &m_vbo);
-        glDeleteBuffers(1, &m_ebo);
+        releaseGPU();
     }
 
     // ── draw ──────────────────────────────────────────────────────────────────
@@ -127,6 +147,19 @@ private:
     GLuint m_vao { 0 };
     GLuint m_vbo { 0 };
     GLuint m_ebo { 0 };
+
+    void releaseGPU()
+    {
+        if (m_vao != 0)
+            glDeleteVertexArrays(1, &m_vao);
+        if (m_vbo != 0)
+            glDeleteBuffers(1, &m_vbo);
+        if (m_ebo != 0)
+            glDeleteBuffers(1, &m_ebo);
+        m_vao = 0;
+        m_vbo = 0;
+        m_ebo = 0;
+    }
 
     // ── setupGPU ──────────────────────────────────────────────────────────────
     // 1. Generate one VAO, one VBO, one EBO (glGenVertexArrays / glGenBuffers).
