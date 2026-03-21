@@ -36,8 +36,25 @@ public:
     // TODO: Implement.
     Shader(const char* vertPath, const char* fragPath)
     {
-        // TODO
-        (void)vertPath; (void)fragPath;
+        const std::string vertCode = readFile(vertPath);
+        const std::string fragCode = readFile(fragPath);
+
+        const GLuint vertShader = compile(GL_VERTEX_SHADER, vertCode.c_str(), vertPath);
+        const GLuint fragShader = compile(GL_FRAGMENT_SHADER, fragCode.c_str(), fragPath);
+
+        id = glCreateProgram();
+        if (vertShader != 0)
+            glAttachShader(id, vertShader);
+        if (fragShader != 0)
+            glAttachShader(id, fragShader);
+
+        glLinkProgram(id);
+        checkLink(id);
+
+        if (vertShader != 0)
+            glDeleteShader(vertShader);
+        if (fragShader != 0)
+            glDeleteShader(fragShader);
     }
 
     void use() const { glUseProgram(id); }
@@ -81,9 +98,25 @@ private:
     // TODO: Implement.
     static GLuint compile(GLenum type, const char* src, const char* label)
     {
-        // TODO
-        (void)type; (void)src; (void)label;
-        return 0;
+        const GLuint shader = glCreateShader(type);
+        if (shader == 0) {
+            std::cerr << "[Shader] Failed to create shader: " << label << "\n";
+            return 0;
+        }
+
+        glShaderSource(shader, 1, &src, nullptr);
+        glCompileShader(shader);
+
+        GLint success = GL_FALSE;
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+        if (success != GL_TRUE) {
+            GLchar infoLog[1024] = {};
+            glGetShaderInfoLog(shader, sizeof(infoLog), nullptr, infoLog);
+            std::cerr << "[Shader] Compile error in " << label << ":\n"
+                      << infoLog << "\n";
+        }
+
+        return shader;
     }
 
     // ── checkLink ─────────────────────────────────────────────────────────────
@@ -92,7 +125,12 @@ private:
     // TODO: Implement.
     static void checkLink(GLuint prog)
     {
-        // TODO
-        (void)prog;
+        GLint success = GL_FALSE;
+        glGetProgramiv(prog, GL_LINK_STATUS, &success);
+        if (success != GL_TRUE) {
+            GLchar infoLog[1024] = {};
+            glGetProgramInfoLog(prog, sizeof(infoLog), nullptr, infoLog);
+            std::cerr << "[Shader] Link error:\n" << infoLog << "\n";
+        }
     }
 };

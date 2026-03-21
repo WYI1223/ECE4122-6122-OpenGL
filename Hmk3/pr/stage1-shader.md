@@ -66,7 +66,7 @@ Out of scope:
 
 ```bash
 cd F:/Learn/ECE4122-6122-OpenGL
-cmake --build build_hmk3_stage0 --config Debug --target Hmk3_Skeleton
+cmake --build build --config Debug --target Hmk3_Skeleton
 ```
 
 If `cmake` is not on `PATH`, use the Stage 0 documented Visual Studio bundled
@@ -75,8 +75,8 @@ If `cmake` is not on `PATH`, use the Stage 0 documented Visual Studio bundled
 ### Runtime verification
 
 ```bash
-cd F:/Learn/ECE4122-6122-OpenGL/build/bin
-./Hmk3_Skeleton.exe
+cd F:/Learn/ECE4122-6122-OpenGL/Hmk3
+../build/bin/Hmk3_Skeleton.exe
 ```
 
 Expected result:
@@ -88,7 +88,7 @@ Expected result:
 
 | Risk | Why it matters | Mitigation |
 |------|------|------|
-| Shader paths resolve relative to the executable working directory | The constructor may fail even if the code is correct | Continue launching from the Stage 0 verified runtime layout |
+| Shader paths resolve relative to the homework working directory | The constructor may fail even if the code is correct | Continue launching from the Stage 0 verified top-level build plus `Hmk3/` working-directory layout |
 | Compile errors are swallowed | Later stages become harder to debug | Print shader and program info logs immediately on failure |
 
 ## Acceptance Criteria

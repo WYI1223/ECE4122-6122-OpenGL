@@ -243,7 +243,7 @@ Build verification:
 
 ```bash
 cd F:/Learn/ECE4122-6122-OpenGL
-cmake --build build_hmk3_stage0 --config Debug --target Hmk3_Skeleton
+cmake --build build --config Debug --target Hmk3_Skeleton
 ```
 
 If `cmake` is not on `PATH` on the local machine, use the Stage 0 documented

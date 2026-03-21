@@ -101,9 +101,9 @@ We should fix the environment in this order:
 2. Restore or provide the expected third-party dependency tree
 3. Place the homework under the course repository as `Hmk3/`
 4. Add `add_subdirectory(Hmk3)` to the top-level `CMakeLists.txt` after `add_subdirectory(external)`
-5. Re-run `cmake -B build_hmk3_stage0 -S .`
-6. Re-run `cmake --build build_hmk3_stage0 --target Hmk3_Skeleton`
-7. Launch the executable and verify runtime paths
+5. Re-run `cmake -B build -S .` from the top-level course repo
+6. Re-run `cmake --build build --config Debug --target Hmk3_Skeleton`
+7. Launch the generated executable with `Hmk3/` as the working directory and verify runtime paths
 8. Only then move to Stage 1 feature work
 
 ### 0.4 Required Checks
@@ -129,10 +129,13 @@ The canonical commands for baseline verification are:
 
 ```bash
 cd F:/Learn/ECE4122-6122-OpenGL
-cmake -B build_hmk3_stage0 -S .
-cmake --build build_hmk3_stage0 --target Hmk3_Skeleton
-./build/bin/Hmk3_Skeleton.exe
+cmake -B build -S .
+cmake --build build --config Debug --target Hmk3_Skeleton
 ```
+
+Runtime verification should then launch the generated binary with `Hmk3/` as the
+working directory, because the fixed skeleton resolves `shaders/` relative to
+the homework directory.
 
 If a different generator is needed on the local machine, that generator must still be driven through `cmake`; this PR does not introduce a non-CMake build path.
 
@@ -142,10 +145,10 @@ Current fallback discovered in this workspace:
 cd F:\Learn\ECE4122-6122-OpenGL
 
 & 'D:\Application\VisualStudioIDE\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe' `
-  -B build_hmk3_stage0 -S . -G "Visual Studio 17 2022" -A x64
+  -B build -S . -G "Visual Studio 17 2022" -A x64
 
 & 'D:\Application\VisualStudioIDE\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe' `
-  --build build_hmk3_stage0 --config Debug --target Hmk3_Skeleton
+  --build build --config Debug --target Hmk3_Skeleton
 ```
 
 ### 0.6 Current Environment Snapshot
@@ -166,7 +169,7 @@ Based on direct inspection of the current workspace:
   `F:\Learn\ECE4122-6122-OpenGL\build\bin\Hmk3_Skeleton.exe`
 - runtime asset copying succeeds into:
   `F:\Learn\ECE4122-6122-OpenGL\build\bin\assets`
-- the executable can be launched successfully from the top-level build output directory
+- the executable can be launched successfully when `Hmk3/` is used as the working directory
 
 This means the Stage 0 build baseline is now established through the instructor-approved top-level integration flow.
 
@@ -201,9 +204,15 @@ This PR is still validation-first. The only source-controlled changes allowed in
 
 ```bash
 cd F:/Learn/ECE4122-6122-OpenGL
-cmake -B build_hmk3_stage0 -S .
-cmake --build build_hmk3_stage0 --target Hmk3_Skeleton
-./build/bin/Hmk3_Skeleton.exe
+cmake -B build -S .
+cmake --build build --config Debug --target Hmk3_Skeleton
+```
+
+Runtime launch must preserve the homework working directory:
+
+```bash
+cd F:/Learn/ECE4122-6122-OpenGL/Hmk3
+../build/bin/Hmk3_Skeleton.exe
 ```
 
 ### Directory checks
@@ -241,8 +250,8 @@ dir F:/Learn/ECE4122-6122-OpenGL/external/assimp-3.0.1270
 - [ ] all required third-party dependency directories under `../external` exist
 - [ ] the homework exists under the course repo as `Hmk3/`
 - [ ] the top-level `CMakeLists.txt` includes `add_subdirectory(Hmk3)` after `add_subdirectory(external)`
-- [ ] `cmake -B build_hmk3_stage0 -S .` succeeds from the top-level repo
-- [ ] `cmake --build build_hmk3_stage0 --target Hmk3_Skeleton` succeeds from the top-level repo
+- [ ] `cmake -B build -S .` succeeds from the top-level repo
+- [ ] `cmake --build build --config Debug --target Hmk3_Skeleton` succeeds from the top-level repo
 - [ ] the executable starts and opens a window
 - [ ] asset copy behavior to `build/bin/assets` is verified
 - [ ] no skeleton source/interface changes were needed to satisfy the environment baseline

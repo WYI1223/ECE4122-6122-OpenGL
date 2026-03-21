@@ -66,7 +66,7 @@ Out of scope:
 
 ```bash
 cd F:/Learn/ECE4122-6122-OpenGL
-cmake --build build_hmk3_stage0 --config Debug --target Hmk3_Skeleton
+cmake --build build --config Debug --target Hmk3_Skeleton
 ```
 
 ### Structural verification
