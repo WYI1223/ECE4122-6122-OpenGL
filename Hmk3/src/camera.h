@@ -14,6 +14,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
+#include <cmath>
 
 // Direction enum used by processKeyboard()
 enum class CameraDir { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
@@ -42,14 +43,14 @@ public:
     Camera(glm::vec3 pos = { 0.f, 5.f, 15.f })
         : position(pos)
     {
-        // TODO: call updateVectors() here
+        updateVectors();
     }
 
     // ── View matrix ──────────────────────────────────────────────────────────
     // TODO: Return glm::lookAt(position, position + front, up)
     glm::mat4 getViewMatrix() const
     {
-        return glm::mat4(1.f); // placeholder
+        return glm::lookAt(position, position + front, up);
     }
 
     // ── Keyboard movement ─────────────────────────────────────────────────────
@@ -60,8 +61,26 @@ public:
     void processKeyboard(CameraDir dir, float dt)
     {
         float dist = speed * dt;
-        // TODO: switch on dir and update position
-        (void)dist; // remove when implemented
+        switch (dir) {
+        case CameraDir::FORWARD:
+            position += front * dist;
+            break;
+        case CameraDir::BACKWARD:
+            position -= front * dist;
+            break;
+        case CameraDir::LEFT:
+            position -= right * dist;
+            break;
+        case CameraDir::RIGHT:
+            position += right * dist;
+            break;
+        case CameraDir::UP:
+            position += worldUp * dist;
+            break;
+        case CameraDir::DOWN:
+            position -= worldUp * dist;
+            break;
+        }
     }
 
     // ── Mouse look ────────────────────────────────────────────────────────────
@@ -72,8 +91,16 @@ public:
     //       then call updateVectors().
     void processMouseMovement(float dx, float dy, bool constrainPitch = true)
     {
-        // TODO
-        (void)dx; (void)dy; (void)constrainPitch;
+        dx *= mouseSens;
+        dy *= mouseSens;
+
+        yaw += dx;
+        pitch += dy;
+
+        if (constrainPitch)
+            pitch = std::clamp(pitch, -89.f, 89.f);
+
+        updateVectors();
     }
 
     // ── Scroll zoom ───────────────────────────────────────────────────────────
@@ -82,8 +109,8 @@ public:
     // TODO: Implement.
     void processScroll(float yOffset)
     {
-        // TODO
-        (void)yOffset;
+        fov -= yOffset;
+        fov = std::clamp(fov, 1.f, 90.f);
     }
 
     // ── Reset ─────────────────────────────────────────────────────────────────
@@ -92,7 +119,11 @@ public:
     // TODO: Implement.
     void reset()
     {
-        // TODO
+        position = { 0.f, 5.f, 15.f };
+        yaw = -90.f;
+        pitch = 0.f;
+        fov = 45.f;
+        updateVectors();
     }
 
 private:
@@ -108,6 +139,13 @@ private:
     // TODO: Implement.
     void updateVectors()
     {
-        // TODO
+        glm::vec3 newFront;
+        newFront.x = std::cos(glm::radians(yaw)) * std::cos(glm::radians(pitch));
+        newFront.y = std::sin(glm::radians(pitch));
+        newFront.z = std::sin(glm::radians(yaw)) * std::cos(glm::radians(pitch));
+
+        front = glm::normalize(newFront);
+        right = glm::normalize(glm::cross(front, worldUp));
+        up = glm::normalize(glm::cross(right, front));
     }
 };

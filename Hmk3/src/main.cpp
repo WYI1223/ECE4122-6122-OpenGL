@@ -43,13 +43,13 @@ static const int SCR_W = 1280;
 static const int SCR_H = 720;
 
 // ── Global camera ─────────────────────────────────────────────────────────────
-Camera g_camera({ 0.f, 5.f, 15.f });
+Camera g_camera({0.f, 5.f, 15.f});
 
 // ── Mouse tracking state ──────────────────────────────────────────────────────
-static float g_lastX      = SCR_W / 2.f;
-static float g_lastY      = SCR_H / 2.f;
-static bool  g_rmb        = false;   // true while right mouse button is held
-static bool  g_firstMouse = true;    // prevents view jump on first RMB press
+static float g_lastX = SCR_W / 2.f;
+static float g_lastY = SCR_H / 2.f;
+static bool g_rmb = false;       // true while right mouse button is held
+static bool g_firstMouse = true; // prevents view jump on first RMB press
 
 // ── Frame timing ──────────────────────────────────────────────────────────────
 static float g_deltaTime = 0.f;
@@ -58,7 +58,7 @@ static float g_lastFrame = 0.f;
 // ─────────────────────────────────────────────────────────────────────────────
 // framebufferSizeCallback (provided)
 // ─────────────────────────────────────────────────────────────────────────────
-static void framebufferSizeCallback(GLFWwindow*, int w, int h)
+static void framebufferSizeCallback(GLFWwindow *, int w, int h)
 {
     glViewport(0, 0, w, h);
 }
@@ -70,10 +70,11 @@ static void framebufferSizeCallback(GLFWwindow*, int w, int h)
 // Reset g_firstMouse = true on press so the view does not jump.
 // TODO: Implement.
 // ─────────────────────────────────────────────────────────────────────────────
-static void mouseButtonCallback(GLFWwindow*, int button, int action, int /*mods*/)
+static void mouseButtonCallback(GLFWwindow *, int button, int action, int /*mods*/)
 {
     // TODO
-    (void)button; (void)action;
+    (void)button;
+    (void)action;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -85,10 +86,11 @@ static void mouseButtonCallback(GLFWwindow*, int button, int action, int /*mods*
 // Update g_lastX / g_lastY then call g_camera.processMouseMovement(dx, dy).
 // TODO: Implement.
 // ─────────────────────────────────────────────────────────────────────────────
-static void cursorPosCallback(GLFWwindow*, double xpos, double ypos)
+static void cursorPosCallback(GLFWwindow *, double xpos, double ypos)
 {
     // TODO
-    (void)xpos; (void)ypos;
+    (void)xpos;
+    (void)ypos;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -96,7 +98,7 @@ static void cursorPosCallback(GLFWwindow*, double xpos, double ypos)
 // Forward the yOffset to g_camera.processScroll().
 // TODO: Implement.
 // ─────────────────────────────────────────────────────────────────────────────
-static void scrollCallback(GLFWwindow*, double /*xo*/, double yo)
+static void scrollCallback(GLFWwindow *, double /*xo*/, double yo)
 {
     // TODO
     (void)yo;
@@ -111,7 +113,7 @@ static void scrollCallback(GLFWwindow*, double /*xo*/, double yo)
 //   Q/E        → CameraDir::DOWN/UP
 // TODO: Implement.
 // ─────────────────────────────────────────────────────────────────────────────
-static void processInput(GLFWwindow* window)
+static void processInput(GLFWwindow *window)
 {
     // TODO
     (void)window;
@@ -121,24 +123,52 @@ static void processInput(GLFWwindow* window)
 // buildTerrain (provided)
 // Creates a 100×100 flat quad at Y = -0.001 as a raw VAO.
 // ─────────────────────────────────────────────────────────────────────────────
-static GLuint g_terrainVAO { 0 };
-static GLuint g_terrainVBO { 0 };
-static GLuint g_terrainEBO { 0 };
-static int    g_terrainIndexCount { 0 };
+static GLuint g_terrainVAO{0};
+static GLuint g_terrainVBO{0};
+static GLuint g_terrainEBO{0};
+static int g_terrainIndexCount{0};
 
 static void buildTerrain()
 {
-    const float Y    = -0.001f;
+    const float Y = -0.001f;
     const float HALF = 50.f;
     const float TILE = 20.f;
 
     float verts[] = {
-        -HALF, Y, -HALF,  0.f, 1.f, 0.f,  0.f,  TILE,
-         HALF, Y, -HALF,  0.f, 1.f, 0.f,  TILE, TILE,
-         HALF, Y,  HALF,  0.f, 1.f, 0.f,  TILE, 0.f,
-        -HALF, Y,  HALF,  0.f, 1.f, 0.f,  0.f,  0.f,
+        -HALF,
+        Y,
+        -HALF,
+        0.f,
+        1.f,
+        0.f,
+        0.f,
+        TILE,
+        HALF,
+        Y,
+        -HALF,
+        0.f,
+        1.f,
+        0.f,
+        TILE,
+        TILE,
+        HALF,
+        Y,
+        HALF,
+        0.f,
+        1.f,
+        0.f,
+        TILE,
+        0.f,
+        -HALF,
+        Y,
+        HALF,
+        0.f,
+        1.f,
+        0.f,
+        0.f,
+        0.f,
     };
-    unsigned idx[] = { 0, 1, 2,  2, 3, 0 };
+    unsigned idx[] = {0, 1, 2, 2, 3, 0};
     g_terrainIndexCount = 6;
 
     glGenVertexArrays(1, &g_terrainVAO);
@@ -153,11 +183,11 @@ static void buildTerrain()
 
     const int stride = 8 * sizeof(float);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void *)(6 * sizeof(float)));
 
     glBindVertexArray(0);
 }
@@ -185,7 +215,7 @@ static void buildTerrain()
 //
 // TODO: Implement.
 // ─────────────────────────────────────────────────────────────────────────────
-static void setLightUniforms(Shader& sh)
+static void setLightUniforms(Shader &sh)
 {
     // TODO – directional light
 
@@ -206,13 +236,17 @@ static void setLightUniforms(Shader& sh)
 //
 // TODO: Implement.
 // ─────────────────────────────────────────────────────────────────────────────
-static void drawModel(Model& model, Shader& sh,
-                      const glm::mat4& modelMat,
-                      const glm::mat4& view,
-                      const glm::mat4& proj)
+static void drawModel(Model &model, Shader &sh,
+                      const glm::mat4 &modelMat,
+                      const glm::mat4 &view,
+                      const glm::mat4 &proj)
 {
     // TODO
-    (void)model; (void)sh; (void)modelMat; (void)view; (void)proj;
+    (void)model;
+    (void)sh;
+    (void)modelMat;
+    (void)view;
+    (void)proj;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -221,7 +255,8 @@ static void drawModel(Model& model, Shader& sh,
 int main()
 {
     // ── GLFW init (provided) ──────────────────────────────────────────────────
-    if (!glfwInit()) {
+    if (!glfwInit())
+    {
         std::cerr << "Failed to initialize GLFW\n";
         return -1;
     }
@@ -233,9 +268,10 @@ int main()
 #endif
     glfwWindowHint(GLFW_SAMPLES, 4);
 
-    GLFWwindow* window = glfwCreateWindow(SCR_W, SCR_H,
-                                          "HW3 – 3D Rural Scene", nullptr, nullptr);
-    if (!window) {
+    GLFWwindow *window = glfwCreateWindow(SCR_W, SCR_H,
+                                          "HW3 - 3D Rural Scene", nullptr, nullptr);
+    if (!window)
+    {
         std::cerr << "Failed to create GLFW window\n";
         glfwTerminate();
         return -1;
@@ -248,7 +284,8 @@ int main()
     // glGetError() clears the benign GL_INVALID_ENUM that glewInit may emit.
     glewExperimental = GL_TRUE;
     GLenum glewErr = glewInit();
-    if (glewErr != GLEW_OK) {
+    if (glewErr != GLEW_OK)
+    {
         std::cerr << "Failed to initialize GLEW: "
                   << glewGetErrorString(glewErr) << "\n";
         glfwTerminate();
@@ -258,7 +295,7 @@ int main()
 
     std::cout << "OpenGL " << glGetString(GL_VERSION)
               << "  Renderer: " << glGetString(GL_RENDERER) << "\n";
-    std::cout << "GLEW "   << glewGetString(GLEW_VERSION)  << "\n";
+    std::cout << "GLEW " << glewGetString(GLEW_VERSION) << "\n";
 
     // ── Register callbacks (provided – calls your implementations above) ──────
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
@@ -275,12 +312,12 @@ int main()
     // ── Model loading ─────────────────────────────────────────────────────────
     // Place each OBJ (with .mtl and textures) in assets/models/<n>/
 
-//    Model mFarmhouse("./assets/models/farmhouse/Farm_house.obj");
-//    Model mBarrel   ("./assets/models/barrel/Barrel_OBJ.obj");
-//    Model mTree     ("./assets/models/pine_tree/Pine_Tree.obj");
-//    Model mBench    ("./assets/models/bench/wooden_bench.obj");
-    Model mLamp     ("./assets/models/lamp/objLamp.obj");
-    Model mRobot    ("./assets/models/robot/Robot.obj");
+    //    Model mFarmhouse("./assets/models/farmhouse/Farm_house.obj");
+    //    Model mBarrel   ("./assets/models/barrel/Barrel_OBJ.obj");
+    //    Model mTree     ("./assets/models/pine_tree/Pine_Tree.obj");
+    //    Model mBench    ("./assets/models/bench/wooden_bench.obj");
+    Model mLamp("./assets/models/lamp/objLamp.obj");
+    Model mRobot("./assets/models/robot/Robot.obj");
 
     // ── Terrain quad ──────────────────────────────────────────────────────────
     buildTerrain();
@@ -289,7 +326,7 @@ int main()
     while (!glfwWindowShouldClose(window))
     {
         // Delta time (provided)
-        float now   = (float)glfwGetTime();
+        float now = (float)glfwGetTime();
         g_deltaTime = now - g_lastFrame;
         g_lastFrame = now;
 
