@@ -491,12 +491,12 @@ int main()
                   view, proj);
 
         drawModel(mBarrel, objShader,
-                  glm::translate(glm::mat4(1.0f), glm::vec3(6.8f, 0.0f, -5.4f)),
+                  glm::translate(glm::mat4(1.0f), glm::vec3(3.5f, 0.0f, -8.0f)),
                   view, proj);
 
         drawModel(mBarrel, objShader,
                   glm::rotate(
-                      glm::translate(glm::mat4(1.0f), glm::vec3(7.9f, 0.0f, -5.9f)),
+                      glm::translate(glm::mat4(1.0f), glm::vec3(4.5f, 0.0f, -8.0f)),
                       glm::radians(15.0f),
                       glm::vec3(0.0f, 1.0f, 0.0f)),
                   view, proj);
@@ -504,7 +504,7 @@ int main()
         drawModel(mTree, objShader,
                   glm::scale(
                       glm::rotate(
-                          glm::translate(glm::mat4(1.0f), glm::vec3(-16.0f, 0.0f, -16.0f)),
+                          glm::translate(glm::mat4(1.0f), glm::vec3(-12.0f, 0.0f, -12.0f)),
                           glm::radians(12.0f),
                           glm::vec3(0.0f, 1.0f, 0.0f)),
                       glm::vec3(0.42f, 0.95f, 0.42f)),
@@ -513,7 +513,7 @@ int main()
         drawModel(mTree, objShader,
                   glm::scale(
                       glm::rotate(
-                          glm::translate(glm::mat4(1.0f), glm::vec3(16.0f, 0.0f, -16.0f)),
+                          glm::translate(glm::mat4(1.0f), glm::vec3(12.0f, 0.0f, -12.0f)),
                           glm::radians(28.0f),
                           glm::vec3(0.0f, 1.0f, 0.0f)),
                       glm::vec3(0.46f, 1.05f, 0.40f)),
@@ -522,7 +522,7 @@ int main()
         drawModel(mTree, objShader,
                   glm::scale(
                       glm::rotate(
-                          glm::translate(glm::mat4(1.0f), glm::vec3(-16.0f, 0.0f, 16.0f)),
+                          glm::translate(glm::mat4(1.0f), glm::vec3(-12.0f, 0.0f, 12.0f)),
                           glm::radians(8.0f),
                           glm::vec3(0.0f, 1.0f, 0.0f)),
                       glm::vec3(0.38f, 0.88f, 0.44f)),
@@ -531,7 +531,7 @@ int main()
         drawModel(mTree, objShader,
                   glm::scale(
                       glm::rotate(
-                          glm::translate(glm::mat4(1.0f), glm::vec3(16.0f, 0.0f, 16.0f)),
+                          glm::translate(glm::mat4(1.0f), glm::vec3(12.0f, 0.0f, 12.0f)),
                           glm::radians(40.0f),
                           glm::vec3(0.0f, 1.0f, 0.0f)),
                       glm::vec3(0.44f, 1.00f, 0.38f)),
@@ -561,7 +561,7 @@ int main()
         drawModel(mRobot, objShader,
                   glm::scale(
                       glm::rotate(
-                          glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, -0.05f, -4.0f)),
+                          glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, -4.0f)),
                           glm::radians(180.0f),
                           glm::vec3(0.0f, 1.0f, 0.0f)),
                       robotScale),
